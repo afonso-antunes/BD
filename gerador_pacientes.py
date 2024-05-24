@@ -20,12 +20,12 @@ def generate_nif(existing_nifs):
             existing_nifs.add(nif)
 
 print('say gex')
-# a tua mae de quatro epa oh afonso menos ------- oq????????? afonso
+
 
 def generate_telefone():
     return ''.join(random.choices(string.digits, k=9))
 
-# Gera os 5000 registros e salva em um arquivo .txt nigga
+# Gera os 5000 registros e salva em um arquivo .txt 
 def generate_patients(num_patients=5000):
     print("ola")
     print("andre é bue desmancha prazeres -__-")
