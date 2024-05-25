@@ -37,7 +37,7 @@ metrics_parameters = [
     "Pressão arterial", "Temperatura corporal", "Peso", "Altura", "Frequência cardíaca",
     "Nível de glicose", "Nível de colesterol", "Hemoglobina", "Saturação de oxigênio",
     "Índice de massa corporal (IMC)", "Obesidade", "Autismo", "Demencia", "Diarreia", "Loucura",
-    "Estigmatismo", "Miopia", "Cansaço", "Taxa de Alcool", "Taxa de THC no sangue"
+    "Estigmatismo", "Miopia", "Taxa de Ferro no Sangue", "Taxa de Alcool", "Taxa de THC no sangue"
 ]
 
 # Function to generate random observations for a consultation
@@ -62,7 +62,7 @@ def generate_observations(consultation_id):
 consultations_data = read_data_from_sql('insert_consultas.sql', 'consulta')
 
 # Generate and write observations INSERT statements to a file
-with open('observacoes.sql', 'w', encoding='utf-8') as f:
+with open('observacao.sql', 'w', encoding='utf-8') as f:
     for consulta in consultations_data:
         consultation_id = consulta['id']
         observations = generate_observations(consultation_id)

@@ -2,59 +2,61 @@ import random
 import re
 from collections import defaultdict
 
+aux = []
+
 # Arquivo de entrada
-arquivo_medicos = 'medicos.sql'
+arquivo_medicos = 'medico.sql'
 
 # Define as clínicas
 clinicas = ["Soerad", "CUF", "Trofa Saude", "Luz", "SAMS"]
 
 # Dias da semana: 0=domingo, 1=segunda-feira, ..., 6=sábado
-dias_da_semana = list(range(7))
+# Lendo os dados do arquivo medico.sql
+with open('sqlFiles/medico.sql', 'r') as file:
+    medico_lines = file.readlines()
 
-# Função para extrair NIFs dos médicos do arquivo
-def extrair_medicos(filename):
-    medicos = []
-    with open(filename, 'r') as file:
-        for line in file:
-            if line.startswith("INSERT INTO medico"):
-                nif = re.search(r"VALUES\s*\(\s*'(\d{9})'", line)
-                if nif:
-                    medicos.append(nif.group(1))
-    return medicos
+# Lista para armazenar os inserts de trabalha
+inserts_trabalha = []
 
-# Extrai os médicos do arquivo
-medicos = extrair_medicos(arquivo_medicos)
+# Lista dos dias da semana
+dias_da_semana = list(range(0, 7))    # alterado
 
-# Dicionário para armazenar a distribuição de médicos por clínica e dia da semana
-distribuicao = defaultdict(lambda: defaultdict(list))
+# Contador para distribuir médicos em clínicas
+clinica_counter = 0
 
-# Aloca cada médico em pelo menos duas clínicas diferentes ao longo da semana
-for medico in medicos:
-    dias_trabalhados = set()
-    clinicas_escolhidas = random.sample(clinicas, 2)
-    
-    for clinica in clinicas_escolhidas:
-        dias_clinica = random.sample(dias_da_semana, 2)
-        for dia in dias_clinica:
-            if len(dias_trabalhados) < 7:
-                distribuicao[clinica][dia].append(medico)
-                dias_trabalhados.add(dia)
-
-# Verifica e ajusta a distribuição para garantir pelo menos 8 médicos por clínica por dia
-for clinica in clinicas:
-    for dia in dias_da_semana:
-        while len(distribuicao[clinica][dia]) < 8:
-            medico_adicional = random.choice(medicos)
-            # Certifica-se de que o médico adicional não está escalado para outra clínica no mesmo dia
-            if not any(medico_adicional in distribuicao[outra_clinica][dia] for outra_clinica in clinicas):
-                distribuicao[clinica][dia].append(medico_adicional)
-
-# Gera os comandos SQL para inserir na tabela trabalha
-with open('trabalha.txt', 'w') as file:
-    for clinica in clinicas:
+# Percorrendo as linhas do arquivo medico.sql
+for line in medico_lines:
+    if line.startswith("INSERT INTO medico"):
+        # Extraindo os dados do INSERT INTO medico
+        parts = line.split("VALUES (")[1].strip().rstrip(');').split(', ')
+        
+        nif = parts[0].strip("'")
+        nome = parts[1].strip("'")
+        telefone = parts[2].strip("'")
+        morada = parts[3].strip("'")
+        especialidade = parts[4].strip("'")
+        
+        # Distribuindo médicos em clínicas
         for dia in dias_da_semana:
-            for medico in distribuicao[clinica][dia]:
-                sql_command = f"INSERT INTO trabalha (nif, nome, dia_da_semana) VALUES ('{medico}', '{clinica}', {dia});\n"
-                file.write(sql_command)
+            
+            if (nif,dia) in aux: continue
+            
+            aux.append((nif,dia))
+            
+            inserts_trabalha.append(
+                f"INSERT INTO trabalha (nif, nome, dia_da_semana) VALUES ('{nif}', '{clinicas[clinica_counter]}', {dia});"
+            )
+        
+            # Avançando para a próxima clínica
+            clinica_counter = (clinica_counter + 1) % len(clinicas)
+            
+            # Verificando se a clínica counter voltou ao início
+            if clinica_counter == 0:
+                clinica_counter += 1  # Evita que o médico trabalhe no mesmo lugar no mesmo dia da semana
+            
+            
 
-print("Dados de trabalho dos médicos foram gerados e salvos em trabalha.txt")
+# Escrevendo os INSERTS no arquivo trabalho.sql
+with open('sqlFiles/trabalha.sql', 'w') as file:
+    for insert in inserts_trabalha:
+        file.write(insert + "\n")

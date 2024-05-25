@@ -41,7 +41,7 @@ for morada, nome_clinica in clinicas:
         enfermeiros.append(enfermeiro)
 
 # Gera os comandos SQL para inserir os enfermeiros na tabela e escreve em um arquivo .txt
-with open('enfermeiros.sql', 'w') as file:
+with open('enfermeiro.sql', 'w') as file:
     for enfermeiro in enfermeiros:
         sql_command = f"INSERT INTO enfermeiro (nif, nome, telefone, morada, nome_clinica) VALUES ('{enfermeiro['nif']}', '{enfermeiro['nome']}', '{enfermeiro['telefone']}', '{enfermeiro['morada']}', '{enfermeiro['nome_clinica']}');\n"
         file.write(sql_command)

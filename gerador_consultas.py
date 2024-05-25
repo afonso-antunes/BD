@@ -1,20 +1,62 @@
+
 import random
-import datetime
 import re
+from datetime import date, timedelta, time, datetime
+from dataclasses import dataclass
 
-# Funções auxiliares para geração de dados
-def generate_date(year):
-    start_date = datetime.date(year, 1, 1)
-    end_date = datetime.date(year, 12, 31)
-    return start_date + datetime.timedelta(days=random.randint(0, (end_date - start_date).days))
+global_id = 0
+sns_counter = 100000000000
 
-def generate_time():
-    return datetime.time(random.randint(8, 17), random.choice([0, 15, 30, 45]))
+registo_medico_ocupado = []
 
-def generate_sns_code():
-    return ''.join([str(random.randint(0, 9)) for _ in range(12)])
+@dataclass
+class Consulta:
+    id: int
+    ssn: str
+    nif: str
+    nome: str
+    data: date
+    hora: time
+    codigo_sns: str
+    
+# Função para gerar uma data aleatória entre 2023 e 2024 no formato yyyy-mm-DD
+def data_aleatoria():
+    # Gerar um ano aleatório entre 2023 e 2024
+    ano = random.choice([2023, 2024])
+    
+    # Gerar um dia do ano aleatório entre 1 e 365 (ou 366 para anos bissextos)
+    dia_do_ano = random.randint(1, 365 if ano != 2024 else 366)
+    
+    # Construir a data a partir do ano e do dia do ano
+    data = datetime(year=ano, month=1, day=1) + timedelta(days=dia_do_ano - 1)
+    
+    # Formatar a data no formato yyyy-mm-DD
+    data_formatada = data.strftime("%Y-%m-%d")
+    
+    return data_formatada
 
-# Função para ler dados dos arquivos SQL
+# Função para gerar uma hora aleatória com minutos 00 ou 30 no formato HH:mm
+def hora_aleatoria():
+    # Gerar horas aleatórias entre 00 e 23
+    hora = random.randint(0, 23)
+    
+    # Escolher minutos aleatoriamente entre 0 e 1 (para representar 00 ou 30)
+    minutos = random.choice([0, 30])
+    
+    # Formatar a hora e os minutos no formato HH:mm
+    hora_formatada = f"{hora:02}:{minutos:02}"
+    
+    return hora_formatada
+def generate_random_time():
+    return time(hour=random.randint(8, 17), minute=random.choice([0, 30]))
+
+def converter_para_data(data_str):
+    return datetime.strptime(data_str, "%Y-%m-%d").date()
+
+def write_to_file(filename, data):
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write(data)
+
 def read_data_from_sql(file_path, table_name):
     pattern = re.compile(
         fr"INSERT INTO {table_name}\s*\((.*?)\)\s*VALUES\s*\((.*?)\);",
@@ -30,147 +72,85 @@ def read_data_from_sql(file_path, table_name):
         data.append(dict(zip(columns, values)))
     return data
 
-# Ler dados dos arquivos SQL
-clinicas = read_data_from_sql('clinicas.sql', 'clinica')
-medicos = read_data_from_sql('medicos.sql', 'medico')
-pacientes = read_data_from_sql('populate.sql', 'paciente')
+clinicas = read_data_from_sql('sqlFiles/clinicas.sql', 'clinica')
+medicos = read_data_from_sql('sqlFiles/medico.sql', 'medico')
+pacientes = read_data_from_sql('sqlFiles/populate.sql', 'paciente')
+trabalha = read_data_from_sql('sqlFiles/trabalha.sql', 'trabalha')
 
-# Número de entidades
-num_pacientes = len(pacientes)
-num_clinicas = len(clinicas)
-num_medicos = len(medicos)
 
-# Número de dias em cada ano
-dias_2023 = 365
-dias_2024 = 366
-total_dias = dias_2023 + dias_2024
+def custom_weekday(date):
+    return (date.weekday() + 1) % 7
 
-# Consultas mínimas por paciente, clínica e médico
-consultas_por_pacientes = num_pacientes
-consultas_por_clinicas_total = num_clinicas * total_dias * 20
-consultas_por_medicos = num_medicos * 2
-
-# Número total de consultas necessário
-total_consultas = max(consultas_por_pacientes, consultas_por_clinicas_total, consultas_por_medicos)
-
-print(f"Número total de consultas necessário para 2023 e 2024: {total_consultas}")
-
-# Dicionários para verificar duplicações
-consultas_paciente_horario = {}
-consultas_medico_horario = {}
-consultas_unicas = {}
-
-# Geração de consultas
-consultas = []
-
-# Função para verificar duplicidade
-def verifica_duplicidade(ssn, nif, date, time):
-    if (ssn, date, time) in consultas_paciente_horario:
-        return True
-    if (nif, date, time) in consultas_medico_horario:
-        return True
-    if (ssn, nif, date, time) in consultas_unicas:
-        return True
-    return False
-
-# Garantir consultas por paciente
-for paciente in pacientes:
-    year = random.choice([2023, 2024])
-    date = generate_date(year)
-    time = generate_time()
-    medico = random.choice(medicos)
-    while verifica_duplicidade(paciente['ssn'], medico['nif'], date, time):
-        date = generate_date(year)
-        time = generate_time()
-        medico = random.choice(medicos)
-    clinica = random.choice(clinicas)['nome']
-    consulta = {
-        'ssn': paciente['ssn'],
-        'nif': medico['nif'],
-        'nome': clinica,
-        'data': date,
-        'hora': time,
-        'codigo_sns': generate_sns_code()
-    }
-    consultas.append(consulta)
-    consultas_paciente_horario[(paciente['ssn'], date, time)] = True
-    consultas_medico_horario[(medico['nif'], date, time)] = True
-    consultas_unicas[(paciente['ssn'], medico['nif'], date, time)] = True
-
-# Garantir consultas diárias por clínica
-for year in [2023, 2024]:
-    days_in_year = 365 if year == 2023 else 366
-    for clinica in clinicas:
-        clinica_nome = clinica['nome']
-        for day in range(days_in_year):
-            date = datetime.date(year, 1, 1) + datetime.timedelta(days=day)
-            for _ in range(20):
-                paciente = random.choice(pacientes)
-                time = generate_time()
-                medico = random.choice(medicos)
-                while verifica_duplicidade(paciente['ssn'], medico['nif'], date, time):
-                    paciente = random.choice(pacientes)
-                    time = generate_time()
-                    medico = random.choice(medicos)
-                consulta = {
-                    'ssn': paciente['ssn'],
-                    'nif': medico['nif'],
-                    'nome': clinica_nome,
-                    'data': date,
-                    'hora': time,
-                    'codigo_sns': generate_sns_code()
-                }
-                consultas.append(consulta)
-                consultas_paciente_horario[(paciente['ssn'], date, time)] = True
-                consultas_medico_horario[(medico['nif'], date, time)] = True
-                consultas_unicas[(paciente['ssn'], medico['nif'], date, time)] = True
-
-# Garantir consultas por médico
-for medico in medicos:
-    for year in [2023, 2024]:
-        consultas_medico = [c for c in consultas if c['nif'] == medico['nif'] and c['data'].year == year]
-        if len(consultas_medico) < 2:
-            needed_consultas = 2 - len(consultas_medico)
-            for _ in range(needed_consultas):
-                date = generate_date(year)
-                time = generate_time()
-                paciente = random.choice(pacientes)
-                while verifica_duplicidade(paciente['ssn'], medico['nif'], date, time):
-                    date = generate_date(year)
-                    time = generate_time()
-                    paciente = random.choice(pacientes)
-                consulta = {
-                    'ssn': paciente['ssn'],
-                    'nif': medico['nif'],
-                    'nome': random.choice(clinicas)['nome'],
-                    'data': date,
-                    'hora': time,
-                    'codigo_sns': generate_sns_code()
-                }
-                consultas.append(consulta)
-                consultas_paciente_horario[(consulta['ssn'], date, time)] = True
-                consultas_medico_horario[(consulta['nif'], date, time)] = True
-                consultas_unicas[(consulta['ssn'], consulta['nif'], date, time)] = True
-
-# Geração do script SQL para inserção
-insert_sql = "INSERT INTO consulta (id, ssn, nif, nome, data, hora, codigo_sns) VALUES\n"
-values = []
-
-# Inicialize o valor do ID
-next_id = 1
-
-with open('insert_consultas.sql', 'w') as file:
-    for consulta in consultas:
-        sql_command = f"INSERT INTO consulta (id, ssn, nif, nome, data, hora, codigo_sns) VALUES ('{next_id}', '{consulta['ssn']}', '{consulta['nif']}', '{consulta['nome']}', '{consulta['data']}', '{consulta['hora']}', '{consulta['codigo_sns']}');\n"
-
+#print(trabalha)
+lista_clinicas_dias = []
+lista = []
+for medico_line in medicos:
+    #print(medico_line)
+    nif_medico = medico_line['nif']
+    
+    for _ in range(2):
         
-        # Aumente o valor do ID para o próximo registro
-        next_id += 1
-        file.write(sql_command)
+        global_id += 1
+        sns_counter += 1
+        for trabalha_line in trabalha:
+            
+            nif_trabalho = trabalha_line["nif"]
+            
+            if nif_medico == nif_trabalho:
+                dia_de_trabalho_medico = trabalha_line["dia_da_semana"]
+                nome_clinica = trabalha_line["nome"]
+                break
+
+            
         
+        # Gerar data e hora aleatórias
+        while True:
+            data = data_aleatoria()
+            hora = hora_aleatoria()
+            print("help")
+            print(custom_weekday(converter_para_data(data)), dia_de_trabalho_medico)
+            if  (custom_weekday(converter_para_data(data)) == dia_de_trabalho_medico) and \
+                ((nif_medico, data, hora) not in registo_medico_ocupado):        # Sair do loop while se a combinação for válida
+                break 
+            
+        registo_medico_ocupado.add((nif_medico, data, hora))
+        
+        
+        nif_paciente = random.choice(list(pacientes.keys()))
+        paciente = pacientes[nif_paciente]
+        
+        ssn_paciente = paciente['ssn']
+        
+        nova_consulta = Consulta(
+            id = global_id,
+            ssn = ssn_paciente,
+            nif = nif_medico,
+            nome = nome_clinica,
+            data = data,
+            hora = hora,
+            codigo_sns = sns_counter
+        )
+        
+print("registo", registo_medico_ocupado)
+
+
+# Ensure every patient has at least one consultation
+consultations = []
 
 
 
 
 
-print("Script SQL gerado com sucesso e salvo em 'insert_consultas.sql'")
+
+
+# Create SQL insert statements
+sql_inserts = []
+for consultation in consultations:
+    sql_inserts.append(
+        f"INSERT INTO consulta (ssn, nif, nome, data, hora, codigo_sns) VALUES "
+        f"('{consultation['ssn']}', '{consultation['nif']}', '{consultation['nome']}', "
+        f"'{consultation['data']}', '{consultation['hora']}', '{consultation['codigo_sns']}');"
+    )
+
+# Write to consultas.sql
+write_to_file('consultas.sql', '\n'.join(sql_inserts))

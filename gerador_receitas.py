@@ -73,7 +73,7 @@ consultas = read_data_from_sql('insert_consultas.sql', 'consulta')
 receitas_limitadas = generate_receitas_limitado(consultas)
 
 
-with open('receitas_limitadas.sql', 'w') as file:
+with open('receita.sql', 'w') as file:
     for receita in receitas_limitadas:
         sql_command = f"INSERT INTO receita (codigo_sns, medicamento, quantidade) VALUES ('{receita['codigo_sns']}', '{receita['medicamento']}', '{receita['quantidade']}');\n"
 

@@ -44,7 +44,7 @@ for _ in range(num_outros_medicos):
     medicos.append(medico)
 
 # Gera os comandos SQL para inserir os médicos na tabela e escreve em um arquivo .txt
-with open('medicos.txt', 'w') as file:
+with open('medico.txt', 'w') as file:
     for medico in medicos:
         sql_command = f"INSERT INTO medico (nif, nome, telefone, morada, especialidade) VALUES ('{medico['nif']}', '{medico['nome']}', '{medico['telefone']}', '{medico['morada']}', '{medico['especialidade']}');\n"
         file.write(sql_command)

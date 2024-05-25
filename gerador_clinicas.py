@@ -19,7 +19,7 @@ def generate_patients(num_clinicas=5):
     print("andre é bue desmancha prazeres, o maior prazer da vida é ouvir radiohead ass by Afonso do Barreiro -__-")
     
     i = 0
-    with open('clinicas.txt', 'w') as f:
+    with open('clinica.sql', 'w') as f:
         for _ in range(num_clinicas):
            
             telefone = generate_telefone()
